@@ -1,19 +1,20 @@
+import streamlit as st
+from email.header import decode_header
+from getpass import getpass
+from groq import Groq
 import imaplib
 import email
-from email.header import decode_header
-from groq import Groq
 import os
-from getpass import getpass
 import re
 
 class IntelligentEmailChatbot:
-    def __init__(self, email_address="arkshorizon@gmail.com", password="twrw ecjk ttjr fvmw", groq_api_key="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"):
+    def __init__(self, email_address, password, groq_api_key):
         """
         Initialize the intelligent email chatbot with advanced context understanding
         """
-        self.email_address = email_address or input("Enter your Gmail address: ")
-        self.password = password or getpass("Enter your App Password: ")
-        self.groq_api_key = groq_api_key or os.getenv('GROQ_API_KEY') or getpass("Enter Groq API Key: ")
+        self.email_address = email_address
+        self.password = password
+        self.groq_api_key = groq_api_key
         self.groq_client = Groq(api_key=self.groq_api_key)
 
         # IMAP settings
@@ -29,7 +30,7 @@ class IntelligentEmailChatbot:
             mail.login(self.email_address, self.password)
             return mail
         except Exception as e:
-            print(f"Connection error: {e}")
+            st.error(f"Connection error: {e}")
             return None
 
     def get_emails(self, num_emails=50):
@@ -71,7 +72,7 @@ class IntelligentEmailChatbot:
             return emails
 
         except Exception as e:
-            print(f"Email retrieval error: {e}")
+            st.error(f"Email retrieval error: {e}")
             return []
 
     def _extract_email_body(self, email_message):
@@ -111,7 +112,7 @@ class IntelligentEmailChatbot:
             return response.choices[0].message.content
 
         except Exception as e:
-            print(f"Intent analysis error: {e}")
+            st.error(f"Intent analysis error: {e}")
             return "Unable to analyze intent"
 
     def filter_emails(self, emails, intent):
@@ -136,45 +137,39 @@ class IntelligentEmailChatbot:
             return response.choices[0].message.content
 
         except Exception as e:
-            print(f"Email filtering error: {e}")
+            st.error(f"Email filtering error: {e}")
             return "Unable to filter emails"
 
-    def process_request(self, user_input):
-        """
-        Comprehensive email processing based on user input
-        """
-        # Retrieve emails
-        emails = self.get_emails()
-
-        if not emails:
-            return "No emails found or retrieval failed."
-
-        # Analyze user intent
-        intent = self.analyze_intent(user_input)
-
-        # Filter and summarize emails based on intent
-        filtered_results = self.filter_emails(emails, intent)
-
-        return filtered_results
-
+# Streamlit UI
 def main():
-    print(" Intelligent Email Context Assistant ")
-    chatbot = IntelligentEmailChatbot()
+    st.title("📧 Intelligent Email Context Assistant")
 
-    while True:
-        try:
-            user_input = input("\n> ")
-            if user_input.lower() in ['exit', 'quit', 'q', 'bye']:
-                print("Goodbye!")
-                break
+    with st.form("credentials_form"):
+        email_address = st.text_input("Gmail Address", value="", placeholder="Enter your Gmail address")
+        password = st.text_input("App Password", type="password", placeholder="Enter your App Password")
+        groq_api_key = st.text_input("Groq API Key", type="password", placeholder="Enter your Groq API Key")
+        submitted = st.form_submit_button("Submit")
 
-            response = chatbot.process_request(user_input)
-            print(response)
+    if submitted:
+        if not email_address or not password or not groq_api_key:
+            st.error("All fields are required!")
+            return
 
-        except KeyboardInterrupt:
-            print("\nOperation cancelled. Type 'quit' to exit.")
-        except Exception as e:
-            print(f"Unexpected error: {e}")
+        chatbot = IntelligentEmailChatbot(email_address, password, groq_api_key)
+        st.success("Connected successfully!")
+
+        user_input = st.text_input("Enter your email query")
+        if user_input:
+            with st.spinner("Processing your request..."):
+                emails = chatbot.get_emails()
+                if not emails:
+                    st.warning("No emails found or retrieval failed.")
+                    return
+
+                intent = chatbot.analyze_intent(user_input)
+                filtered_results = chatbot.filter_emails(emails, intent)
+
+                st.write(filtered_results)
 
 if __name__ == "__main__":
     main()
