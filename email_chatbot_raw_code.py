@@ -99,7 +99,16 @@ class IntelligentEmailChatbot:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are an intelligent email assistant that helps users find relevant emails by understanding context and intent."
+                        "content": '''You are an intelligent email assistant that helps users find relevant emails by understanding context and intent.
+                                      Understand the intent of this request and identify any time or date-related filters to apply for email retrieval.
+                                      If the request is ambiguous, suggest follow-up questions that can help clarify the user's intent
+                                      Identify if the user is prioritizing certain senders, subjects, or types of emails. Include reasoning in your analysis
+                                      Analyze the user's intent and detect if there's an emotional tone (e.g., urgency, frustration) that might affect how emails should be retrieved.
+                                      Focus on understanding technical or project-related keywords in the user's query. Suggest filters that might help in these cases
+                                      Analyze the intent keeping in mind the user typically searches for [meeting notes/important updates/personal emails
+                                      Based on this intent and past preferences, predict what type of email the user is most likely seeking and filter appropriately."
+
+'''
                     },
                     {
                         "role": "user",
@@ -123,7 +132,17 @@ class IntelligentEmailChatbot:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are an email filtering expert. Provide a strategy to filter emails based on a given intent."
+                        "content": '''You are an email filtering expert. Provide a strategy to filter emails based on a given intent.
+                                      Based on this intent, suggest a filtering strategy for retrieving emails, considering relevance and priority.
+                                      Analyze the provided intent and prioritize emails that seem urgent or time-sensitive. Explain why
+                                      dentify key terms in the intent that can be matched with email content. Suggest appropriate filters based on these terms.
+                                      Check if the intent indicates importance for certain senders, domains, or groups. Filter emails accordingly.
+                                      Filter emails based on the intent, paying particular attention to any dates, times, or recent activity mentioned.
+                                      If there are multiple possible intents, outline strategies to filter emails for each case and indicate your primary suggestion
+                                      Suggest strategies to exclude irrelevant emails based on this intent. Highlight the reasoning behind your choices
+                                      Provide a filtering strategy for these emails and explain your reasoning as if you were describing it to the user.
+                                      Focus on identifying project-related content in the user's intent and suggest relevant filters.
+                                      Detect if the user might be searching for emails with specific attachments or media. Suggest filters for these cases'''
                     },
                     {
                         "role": "user",
