@@ -1,16 +1,13 @@
-import streamlit as st
 from email.header import decode_header
-from getpass import getpass
 from groq import Groq
 import imaplib
 import email
-import os
-import re
+
 
 class IntelligentEmailChatbot:
     def __init__(self, email_address, password, groq_api_key):
         """
-        Initialize the intelligent email chatbot with advanced context understanding
+        Initialize the intelligent email chatbot with advanced context understanding.
         """
         self.email_address = email_address
         self.password = password
@@ -23,19 +20,19 @@ class IntelligentEmailChatbot:
 
     def connect_to_email(self):
         """
-        Establish secure email connection
+        Establish secure email connection.
         """
         try:
             mail = imaplib.IMAP4_SSL(self.imap_server, self.imap_port)
             mail.login(self.email_address, self.password)
             return mail
         except Exception as e:
-            st.error(f"Connection error: {e}")
+            print(f"Connection error: {e}")
             return None
 
     def get_emails(self, num_emails=50):
         """
-        Retrieve emails with comprehensive retrieval
+        Retrieve emails with comprehensive retrieval.
         """
         mail = self.connect_to_email()
         if not mail:
@@ -72,12 +69,12 @@ class IntelligentEmailChatbot:
             return emails
 
         except Exception as e:
-            st.error(f"Email retrieval error: {e}")
+            print(f"Email retrieval error: {e}")
             return []
 
     def _extract_email_body(self, email_message):
         """
-        Extract comprehensive email body content
+        Extract comprehensive email body content.
         """
         body = ""
         if email_message.is_multipart():
@@ -93,7 +90,7 @@ class IntelligentEmailChatbot:
 
     def analyze_intent(self, user_input):
         """
-        Use AI to understand user's email retrieval intent
+        Use AI to understand user's email retrieval intent.
         """
         try:
             response = self.groq_client.chat.completions.create(
@@ -102,12 +99,7 @@ class IntelligentEmailChatbot:
                         "role": "system",
                         "content": '''You are an intelligent email assistant that helps users find relevant emails by understanding context and intent.
                                       Understand the intent of this request and identify any time or date-related filters to apply for email retrieval.
-                                      If the request is ambiguous, suggest follow-up questions that can help clarify the user's intent
-                                      Identify if the user is prioritizing certain senders, subjects, or types of emails. Include reasoning in your analysis
-                                      Analyze the user's intent and detect if there's an emotional tone (e.g., urgency, frustration) that might affect how emails should be retrieved.
-                                      Focus on understanding technical or project-related keywords in the user's query. Suggest filters that might help in these cases
-                                      Analyze the intent keeping in mind the user typically searches for [meeting notes/important updates/personal emails
-                                      Based on this intent and past preferences, predict what type of email the user is most likely seeking and filter appropriately.'''
+                                      Identify if the user is prioritizing certain senders, subjects, or types of emails.'''
                     },
                     {
                         "role": "user",
@@ -119,12 +111,12 @@ class IntelligentEmailChatbot:
             return response.choices[0].message.content
 
         except Exception as e:
-            st.error(f"Intent analysis error: {e}")
+            print(f"Intent analysis error: {e}")
             return "Unable to analyze intent"
 
     def filter_emails(self, emails, intent):
         """
-        Filter emails based on AI-interpreted intent
+        Filter emails based on AI-interpreted intent.
         """
         try:
             response = self.groq_client.chat.completions.create(
@@ -132,16 +124,7 @@ class IntelligentEmailChatbot:
                     {
                         "role": "system",
                         "content": '''You are an email filtering expert. Provide a strategy to filter emails based on a given intent.
-                                      Based on this intent, suggest a filtering strategy for retrieving emails, considering relevance and priority.
-                                      Analyze the provided intent and prioritize emails that seem urgent or time-sensitive. Explain why
-                                      dentify key terms in the intent that can be matched with email content. Suggest appropriate filters based on these terms.
-                                      Check if the intent indicates importance for certain senders, domains, or groups. Filter emails accordingly.
-                                      Filter emails based on the intent, paying particular attention to any dates, times, or recent activity mentioned.
-                                      If there are multiple possible intents, outline strategies to filter emails for each case and indicate your primary suggestion
-                                      Suggest strategies to exclude irrelevant emails based on this intent. Highlight the reasoning behind your choices
-                                      Provide a filtering strategy for these emails and explain your reasoning as if you were describing it to the user.
-                                      Focus on identifying project-related content in the user's intent and suggest relevant filters.
-                                      Detect if the user might be searching for emails with specific attachments or media. Suggest filters for these cases'''
+                                      Analyze the provided intent and prioritize emails that seem urgent or time-sensitive.'''
                     },
                     {
                         "role": "user",
@@ -154,39 +137,43 @@ class IntelligentEmailChatbot:
             return response.choices[0].message.content
 
         except Exception as e:
-            st.error(f"Email filtering error: {e}")
+            print(f"Email filtering error: {e}")
             return "Unable to filter emails"
 
-# Streamlit UI
+
+# Terminal UI
 def main():
-    st.title("📧 Intelligent Email Context Assistant")
+    print("📧 Intelligent Email Context Assistant")
 
-    with st.form("credentials_form"):
-        email_address = st.text_input("Gmail Address", value="", placeholder="Enter your Gmail address")
-        password = st.text_input("App Password", type="password", placeholder="Enter your App Password")
-        groq_api_key = st.text_input("Groq API Key", type="password", placeholder="Enter your Groq API Key")
-        submitted = st.form_submit_button("Submit")
+    email_address = input("Enter your Gmail address: ")
+    password = input("Enter your App Password: ")
+    groq_api_key = input("Enter your Groq API Key: ")
 
-    if submitted:
-        if not email_address or not password or not groq_api_key:
-            st.error("All fields are required!")
-            return
+    if not email_address or not password or not groq_api_key:
+        print("All fields are required!")
+        return
 
-        chatbot = IntelligentEmailChatbot(email_address, password, groq_api_key)
-        st.success("Connected successfully!")
+    chatbot = IntelligentEmailChatbot(email_address, password, groq_api_key)
+    print("Connected successfully!")
 
-        user_input = st.text_input("Enter your email query")
-        if user_input:
-            with st.spinner("Processing your request..."):
-                emails = chatbot.get_emails()
-                if not emails:
-                    st.warning("No emails found or retrieval failed.")
-                    return
+    while True:
+        user_input = input("\nEnter your email query (or type 'exit' to quit): ")
+        if user_input.lower() == 'exit':
+            print("Goodbye!")
+            break
 
-                intent = chatbot.analyze_intent(user_input)
-                filtered_results = chatbot.filter_emails(emails, intent)
+        print("Processing your request...")
+        emails = chatbot.get_emails()
+        if not emails:
+            print("No emails found or retrieval failed.")
+            continue
 
-                st.write(filtered_results)
+        intent = chatbot.analyze_intent(user_input)
+        filtered_results = chatbot.filter_emails(emails, intent)
+
+        print("\nFiltered Results:\n")
+        print(filtered_results)
+
 
 if __name__ == "__main__":
     main()

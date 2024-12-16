@@ -4,18 +4,19 @@ from email.header import decode_header
 from groq import Groq
 import os
 from typing import List, Dict, Optional
+from django.http import JsonResponse
+from django.shortcuts import render
+import json
+from concurrent.futures import ThreadPoolExecutor
 
 class IntelligentEmailChatbot:
-    def __init__(self, 
-                 email_address: Optional[str] = None, 
-                 password: Optional[str] = None, 
-                 groq_api_key: Optional[str] = None):
+    def __init__(self):
         """
         Initialize the intelligent email chatbot with advanced context understanding
         """
-        self.email_address = email_address or input("Enter your Gmail address: ")
-        self.password = password or input("Enter your App Password: ")
-        self.groq_api_key = groq_api_key or input("Enter Groq API Key: ")
+        self.email_address = "arkshorizon@gmail.com"
+        self.password = "twrw ecjk ttjr fvmw"
+        self.groq_api_key = "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"
         self.groq_client = Groq(api_key=self.groq_api_key)
 
         # IMAP settings
@@ -128,7 +129,8 @@ class IntelligentEmailChatbot:
                     {"role": "user", "content": f"Interpret the intent behind: '{user_input}'"}
                 ],
                 model="llama3-8b-8192",
-                max_tokens=150
+                max_tokens=150,
+                temperature=0
             )
             return response.choices[0].message.content.strip()
         except Exception as e:
@@ -142,10 +144,13 @@ class IntelligentEmailChatbot:
         system_prompt = """
         You are an expert email classifier. For each email:
         1. Carefully assess its relevance to the given intent
-        2. Provide a brief description of 100 words, clear explanation of why it matches
+        2. Provide a brief description of 100 words
         3. If matching, extract key details
         4. Organize results for easy user comprehension
         5. Don't give non-matching emails and don't mention about this
+        6. Ignore non-matching emails
+        7. Reply in html format, using <h1> tag for Important things etc, but don't mention this to user
+        8. Add all relevant emails in Matching Emails
         """
         
         try:
@@ -163,7 +168,8 @@ class IntelligentEmailChatbot:
                     }
                 ],
                 model="llama3-8b-8192",
-                max_tokens=500
+                max_tokens=500,
+                temperature=0
             )
             return response.choices[0].message.content
         except Exception as e:
@@ -177,19 +183,29 @@ class IntelligentEmailChatbot:
         if not user_input or not isinstance(user_input, str):
             return "Invalid input provided."
 
-        try:
-            emails = self.get_emails()
-            if not emails:
-                return "No emails found."
-        except Exception as e:
-            return f"Email retrieval failed: {str(e)}"
+        def fetch_emails():
+            return self.get_emails()
+
+        def analyze_user_intent():
+            return self.analyze_intent(user_input)
 
         try:
-            intent = self.analyze_intent(user_input)
-            filtered_results = self.filter_emails(emails, intent)
-            return filtered_results
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                future_emails = executor.submit(fetch_emails)
+                future_intent = executor.submit(analyze_user_intent)
+
+                emails = future_emails.result()
+                if not emails:
+                    return "No emails found."
+
+                intent = future_intent.result()
+
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future_filtered_results = executor.submit(self.filter_emails, emails, intent)
+                return future_filtered_results.result()
+
         except Exception as e:
-            return f"Email filtering failed: {str(e)}"
+            return f"Processing failed: {str(e)}"
 
 def main():
     print("🤖 Intelligent Email Context Assistant 🤖")
@@ -210,5 +226,16 @@ def main():
         except Exception as e:
             print(f"Unexpected error: {e}")
 
-if __name__ == "__main__":
-    main()
+def index(request):
+    if request.method == 'GET':
+        return render(request, 'index.html')
+    else:
+        chatbot = IntelligentEmailChatbot()
+    
+        user_input = request.POST["userInput"]
+
+        response = chatbot.process_request(user_input)
+        return render(request, 'index.html', {
+            'response': response,
+            'userInput': user_input
+        })
